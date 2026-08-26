@@ -1,0 +1,51 @@
+# ==========================================
+# AEGIS Enterprise Cyber Range - .gitignore
+# ==========================================
+
+# ISO installation media
+*.iso
+
+# VirtualBox virtual machines
+*.vdi
+*.vbox
+*.vbox-prev
+*.vmdk
+*.ova
+*.ovf
+*.sav
+
+# VirtualBox logs and snapshots
+Logs/
+Snapshots/
+
+# Packet captures
+*.pcap
+*.pcapng
+
+# Splunk / SIEM generated data
+splunk-data/
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+~*
+
+# Windows files
+Thumbs.db
+Desktop.ini
+
+# Secrets / credentials
+*.key
+*.pem
+*.pfx
+*.p12
+.env
+secrets/
+credentials/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/

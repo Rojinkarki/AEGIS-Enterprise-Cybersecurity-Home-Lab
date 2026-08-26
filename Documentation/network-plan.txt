@@ -1,0 +1,30 @@
+AEGIS ENTERPRISE CYBER RANGE
+============================
+
+LAB NETWORK
+-----------
+Network Name : AEGIS-LAN
+Subnet       : 10.50.0.0/24
+
+RESERVED IP ADDRESSES
+---------------------
+10.50.0.1  - OPNsense Firewall / Gateway
+10.50.0.10 - DC01 - Windows Server / Active Directory / DNS
+10.50.0.20 - SOC01 - Ubuntu Server / Splunk SIEM
+10.50.0.30 - WS01 - Windows 11 Enterprise Workstation
+
+DOMAIN
+------
+Planned Domain: corp.aegis.test
+
+PHYSICAL ATTACKER
+-----------------
+Device : Dedicated Kali Linux Laptop
+Role   : Red Team / Attack Simulation
+
+SAFETY
+------
+Enterprise VMs will initially use VirtualBox Internal Network.
+No Bridged Adapter will be used during initial setup.
+AEGIS-LAN will initially have no direct access to the home network.
+Kali connectivity will be added later in a controlled manner.

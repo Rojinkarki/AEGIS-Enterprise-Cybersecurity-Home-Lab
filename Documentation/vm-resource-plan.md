@@ -1,340 +1,363 @@
-﻿# \# AEGIS Virtual Machine Resource Plan
+# AEGIS Virtual Machine Resource Plan
 
-# 
+## Host System
 
-# \## Host System
+Operating System:
 
-# 
+Windows 11 Home
 
-# Operating System:
+Hardware:
 
-# 
+- CPU: AMD Ryzen 7 8845HS
+- Physical Cores: 8
+- Logical Threads: 16
+- RAM: 32 GB
+- GPU: NVIDIA RTX 4060
+- Storage Available at Project Start: approximately 500 GB
 
-# Windows 11 Home
+Virtualization Platform:
 
-# 
+Oracle VirtualBox
 
-# Hardware:
+---
 
-# 
+# DC01 - Domain Controller
 
-# \- CPU: AMD Ryzen 7 8845HS
+Operating System:
 
-# \- Physical Cores: 8
+Windows Server 2025 Standard Evaluation
 
-# \- Logical Threads: 16
+Resources:
 
-# \- RAM: 32 GB
+- RAM: 4 GB
+- vCPU: 2
+- Virtual Disk: 60 GB dynamically allocated
 
-# \- GPU: NVIDIA RTX 4060
+Role:
 
-# \- Storage Available at Project Start: approximately 500 GB
+- Active Directory Domain Services
+- DNS
+- Group Policy
+- Domain Controller
 
-# 
+Network:
 
-# Virtualization Platform:
+- IP: `10.50.0.10`
+- Gateway: `10.50.0.1`
+- DNS: `10.50.0.10`
 
-# 
+Security Components:
 
-# Oracle VirtualBox
+- Splunk Universal Forwarder
+- Wazuh Agent
 
-# 
+---
 
-# \---
+# WS01 - Corporate Workstation
 
-# 
+Operating System:
 
-# \# DC01 - Domain Controller
+Windows 11 Enterprise Evaluation
 
-# 
+Resources:
 
-# Operating System:
+- RAM: 6 GB
+- vCPU: 4
+- Virtual Disk: 80 GB dynamically allocated
 
-# 
+Role:
 
-# Windows Server 2025 Standard Evaluation
+- Domain-joined workstation
+- Sysmon telemetry source
+- Security testing endpoint
 
-# 
+Network:
 
-# Resources:
+- IP: `10.50.0.30`
+- Gateway: `10.50.0.1`
+- DNS: `10.50.0.10`
 
-# 
+Security Components:
 
-# \- RAM: 4 GB
+- Sysmon
+- Splunk Universal Forwarder
+- Wazuh Agent
 
-# \- vCPU: 2
+---
 
-# \- Virtual Disk: 60 GB dynamically allocated
+# SOC01 - Splunk Security Operations Server
 
-# 
+Operating System:
 
-# Role:
+Ubuntu Server 24.04 LTS
 
-# 
+Resources:
 
-# \- Active Directory Domain Services
+- RAM: 8 GB
+- vCPU: 4
+- Virtual Disk: 100 GB dynamically allocated
 
-# \- DNS
+Role:
 
-# \- Group Policy
+- Splunk Enterprise
+- Centralized log collection
+- Detection engineering
+- Security investigation
 
-# \- Domain Controller
+Network:
 
-# 
+- IP: `10.50.0.20`
+- Gateway: `10.50.0.1`
+- DNS: `10.50.0.10`
 
-# Network:
+---
 
-# 
+# WAZUH01 - Wazuh Security Server
 
-# \- IP: `10.50.0.10`
+Operating System:
 
-# \- Gateway: `10.50.0.1`
+Ubuntu Server 24.04 LTS
 
-# \- DNS: `10.50.0.10`
+Resources:
 
-# 
+- RAM: 8 GB
+- vCPU: 4
+- Virtual Disk: 80 GB dynamically allocated
 
-# Security Components:
+Role:
 
-# 
+- Wazuh Manager
+- Wazuh Indexer
+- Wazuh Dashboard
+- Endpoint security monitoring
 
-# \- Splunk Universal Forwarder
+Network:
 
-# \- Wazuh Agent
+- IP: `10.50.0.40`
+- Gateway: `10.50.0.1`
+- DNS: `10.50.0.10`
 
-# 
+---
 
-# \---
+# OPNsense-FW - Firewall
 
-# 
+Operating System:
 
-# \# WS01 - Corporate Workstation
+OPNsense 26.7
 
-# 
+Resources:
 
-# Operating System:
+- RAM: 4 GB
+- vCPU: 2
+- Virtual Disk: 25 GB dynamically allocated
 
-# 
+Role:
 
-# Windows 11 Enterprise Evaluation
+- Firewall
+- Default gateway
+- Internet routing
+- Suricata IDS
+- Future Kali attack-network control
 
-# 
+Interfaces:
 
-# Resources:
+```text
+WAN
+VirtualBox NAT
 
-# 
+LAN
+AEGIS-LAN
+10.50.0.1/24
+```
 
-# \- RAM: 6 GB
+---
 
-# \- vCPU: 4
+# Internal Network
 
-# \- Virtual Disk: 80 GB dynamically allocated
+Network:
 
-# 
+`AEGIS-LAN`
 
-# Role:
+Subnet:
 
-# 
+`10.50.0.0/24`
 
-# \- Domain-joined workstation
+Gateway:
 
-# \- Sysmon telemetry source
+`10.50.0.1`
 
-# \- Security testing endpoint
+DNS:
 
-# 
+`10.50.0.10`
 
-# Network:
+---
 
-# 
+# Resource Strategy
 
-# \- IP: `10.50.0.30`
+The host has 32 GB of physical RAM.
 
-# \- Gateway: `10.50.0.1`
+Running every heavy VM at the same time would consume nearly all host memory, so AEGIS uses workload profiles.
 
-# \- DNS: `10.50.0.10`
+## Splunk Profile
 
-# 
+Recommended systems:
 
-# Security Components:
+```text
+OPNsense  4 GB
+DC01      4 GB
+WS01      6 GB
+SOC01     8 GB
+----------------
+Total    22 GB
+```
 
-# 
+This leaves approximately 10 GB for Windows and VirtualBox overhead.
 
-# \- Sysmon
+---
 
-# \- Splunk Universal Forwarder
+# Wazuh Profile
 
-# \- Wazuh Agent
+Recommended systems:
 
-# 
+```text
+OPNsense  4 GB
+DC01      4 GB
+WS01      6 GB
+WAZUH01   8 GB
+----------------
+Total    22 GB
+```
 
-# \---
+This leaves approximately 10 GB for the host operating system.
 
-# 
+---
 
-# \# SOC01 - Splunk Security Operations Server
+# Lightweight Network Profile
 
-# 
+For firewall, Active Directory, and endpoint testing:
 
-# Operating System:
+```text
+OPNsense  4 GB
+DC01      4 GB
+WS01      6 GB
+----------------
+Total    14 GB
+```
 
-# 
+This is preferred when Splunk or Wazuh are not needed.
 
-# Ubuntu Server 24.04 LTS
+---
 
-# 
+# Heavy Full-Lab Configuration
 
-# Resources:
+Running:
 
-# 
+```text
+OPNsense  4 GB
+DC01      4 GB
+WS01      6 GB
+SOC01     8 GB
+WAZUH01   8 GB
+----------------
+Total    30 GB
+```
 
-# \- RAM: 8 GB
+is not recommended during normal operation because it leaves too little memory for the Windows host and virtualization overhead.
 
-# \- vCPU: 4
+SOC01 and WAZUH01 should therefore normally be operated in separate profiles.
 
-# \- Virtual Disk: 100 GB dynamically allocated
+---
 
-# 
+# Storage Strategy
 
-# Role:
+All virtual disks use dynamic allocation.
 
-# 
+Configured disk sizes:
 
-# \- Splunk Enterprise
+| VM | Disk |
+|---|---:|
+| DC01 | 60 GB |
+| WS01 | 80 GB |
+| SOC01 | 100 GB |
+| WAZUH01 | 80 GB |
+| OPNsense | 25 GB |
 
-# \- Centralized log collection
+Dynamic allocation prevents the full configured capacity from being consumed immediately.
 
-# \- Detection engineering
+---
 
-# \- Security investigation
+# Temporary Internet Access
 
-# 
+During early installation stages, some VMs temporarily used a second VirtualBox NAT adapter.
 
-# Network:
+These temporary adapters were removed after OPNsense became operational.
 
-# 
+Permanent AEGIS systems now use:
 
-# \- IP: `10.50.0.20`
+```text
+Default Gateway: 10.50.0.1
+```
 
-# \- Gateway: `10.50.0.1`
+This ensures outbound traffic follows the firewall path.
 
-# \- DNS: `10.50.0.10`
+---
 
-# 
+# Snapshot Strategy
 
-# \---
+Snapshots are taken before or after major milestones.
 
-# 
+Examples include:
 
-# \# WAZUH01 - Wazuh Security Server
+## DC01
 
-# 
+- `DC01-Baseline-AD-Healthy`
+- `DC01-AD-Structure-Complete`
+- `DC01-GPO-Security-Baseline`
+- `DC01-Splunk-Forwarder-Integrated`
 
-# Operating System:
+## WS01
 
-# 
+- `WS01-Splunk-Sysmon-Integrated`
 
-# Ubuntu Server 24.04 LTS
+## SOC01
 
-# 
+- `SOC01-Splunk-Detection-Engine-Operational`
 
-# Resources:
+## WAZUH01
 
-# 
+- `WAZUH01-Baseline-Ubuntu-Healthy`
+- `WAZUH01-Agents-and-AD-Detection-Operational`
+- `WAZUH01-OPNsense-Routing-Integrated`
 
-# \- RAM: 8 GB
+## OPNsense
 
-# \- vCPU: 4
+- `OPNsense-Baseline-WAN-LAN-Healthy`
+- `OPNsense-Suricata-IDS-Operational`
 
-# \- Virtual Disk: 80 GB dynamically allocated
+---
 
-# 
+# Current Recommendation
 
-# Role:
+For most daily lab work, run only the systems required for that exercise.
 
-# 
+Examples:
 
-# \- Wazuh Manager
+Splunk investigation:
 
-# \- Wazuh Indexer
+```text
+OPNsense + DC01 + WS01 + SOC01
+```
 
-# \- Wazuh Dashboard
+Wazuh investigation:
 
-# \- Endpoint security monitoring
+```text
+OPNsense + DC01 + WS01 + WAZUH01
+```
 
-# 
+Firewall / Suricata testing:
 
-# Network:
+```text
+OPNsense + DC01 + WS01
+```
 
-# 
-
-# \- IP: `10.50.0.40`
-
-# \- Gateway: `10.50.0.1`
-
-# \- DNS: `10.50.0.10`
-
-# 
-
-# \---
-
-# 
-
-# \# OPNsense-FW - Firewall
-
-# 
-
-# Operating System:
-
-# 
-
-# OPNsense 26.7
-
-# 
-
-# Resources:
-
-# 
-
-# \- RAM: 4 GB
-
-# \- vCPU: 2
-
-# \- Virtual Disk: 25 GB dynamically allocated
-
-# 
-
-# Role:
-
-# 
-
-# \- Firewall
-
-# \- Default gateway
-
-# \- Internet routing
-
-# \- Suricata IDS
-
-# \- Future Kali attack-network control
-
-# 
-
-# Interfaces:
-
-# 
-
-# ```text
-
-# WAN
-
-# VirtualBox NAT
-
-# 
-
-# LAN
-
-# AEGIS-LAN
-
-# 10.50.0.1/24
-
+This keeps the host responsive while preserving realistic enterprise workflows.

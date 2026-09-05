@@ -1,84 +1,198 @@
-﻿# AEGIS Cyber Range Architecture
+﻿# \# AEGIS Cyber Range Architecture
 
-## Physical Systems
+# 
 
-### Kali Linux Laptop
-Role: Red Team / Attacker
-Type: Physical machine
+# \## Overview
 
-### Windows 11 Home Laptop
-Role: Virtualization Host
-CPU: AMD Ryzen 7 8845HS
-RAM: 32 GB
-GPU: NVIDIA RTX 4060
+# 
 
-## Planned Virtual Machines
+# AEGIS is an isolated enterprise cybersecurity home lab built in Oracle VirtualBox.
 
-### DC01
-Operating System: Windows Server 2025
-Role:
-- Active Directory Domain Services
-- DNS
-- Domain Controller
+# 
 
-Planned IP: 10.50.0.10
+# The environment currently includes:
 
-### SOC01
-Operating System: Ubuntu Server
-Role:
-- Splunk Enterprise
-- Centralized log analysis
-- Detection engineering
+# 
 
-Planned IP: 10.50.0.20
+# \- Active Directory
 
-### WS01
-Operating System: Windows 11 Enterprise
-Role:
-- Domain-joined corporate workstation
-- Sysmon telemetry source
-- Security testing target
+# \- DNS
 
-Planned IP: 10.50.0.30
+# \- Group Policy
 
-### OPNsense
-Role:
-- Firewall
-- Routing
-- Network segmentation
+# \- Windows endpoint telemetry
 
-Planned IP: 10.50.0.1
+# \- Splunk SIEM
 
-## Internal Network
+# \- Wazuh SIEM/XDR
 
-Name: AEGIS-LAN
-Subnet: 10.50.0.0/24
+# \- OPNsense firewall
 
-Initial design:
-All enterprise VMs remain isolated inside the VirtualBox Internal Network.
+# \- Suricata network IDS
 
-## Security Model
+# 
 
-The physical Kali system will not initially have direct access to AEGIS-LAN.
+# The next phase will introduce a dedicated physical Kali Linux attacker through a controlled firewall path.
 
-Connectivity between Kali and the enterprise environment will be introduced later through a controlled firewall path.
+# 
 
-## Detection Flow
+# \---
 
-WS01 / DC01
-     |
-     | Security Events
-     v
-Sysmon + Windows Event Logs
-     |
-     v
-Splunk Forwarder
-     |
-     v
-SOC01
-     |
-     v
-Detection Rules
-     |
-     v
-SOC Investigation
+# 
+
+# \# Physical Systems
+
+# 
+
+# \## Windows 11 Home Laptop
+
+# 
+
+# Role:
+
+# 
+
+# \- Virtualization Host
+
+# \- Primary management system
+
+# 
+
+# Hardware:
+
+# 
+
+# \- CPU: AMD Ryzen 7 8845HS
+
+# \- RAM: 32 GB
+
+# \- GPU: NVIDIA RTX 4060
+
+# 
+
+# Virtualization platform:
+
+# 
+
+# \- Oracle VirtualBox
+
+# 
+
+# \---
+
+# 
+
+# \## Kali Linux Laptop
+
+# 
+
+# Role:
+
+# 
+
+# \- Red Team
+
+# \- Controlled adversary simulation
+
+# \- Network reconnaissance
+
+# \- Security testing
+
+# 
+
+# Type:
+
+# 
+
+# Physical dedicated laptop
+
+# 
+
+# Current status:
+
+# 
+
+# Not yet connected directly to AEGIS-LAN.
+
+# 
+
+# Future connectivity will be introduced through a dedicated and restricted OPNsense interface.
+
+# 
+
+# \---
+
+# 
+
+# \# Virtual Machines
+
+# 
+
+# \## OPNsense-FW
+
+# 
+
+# Operating System:
+
+# 
+
+# OPNsense 26.7
+
+# 
+
+# Role:
+
+# 
+
+# \- Firewall
+
+# \- Default gateway
+
+# \- Internet routing
+
+# \- Network control
+
+# \- Suricata IDS
+
+# 
+
+# Resources:
+
+# 
+
+# \- RAM: 4 GB
+
+# \- vCPU: 2
+
+# \- Disk: 25 GB
+
+# 
+
+# Interfaces:
+
+# 
+
+# ```text
+
+# WAN
+
+# Interface: le0
+
+# Connection: VirtualBox NAT
+
+# Address: DHCP
+
+# Current example: 10.0.2.15/24
+
+# 
+
+# LAN
+
+# Interface: le1
+
+# Connection: Internal Network
+
+# Network: AEGIS-LAN
+
+# Address: 10.50.0.1/24
+

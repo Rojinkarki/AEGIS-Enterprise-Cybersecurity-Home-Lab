@@ -1,4 +1,4 @@
-﻿# AEGIS Enterprise Cybersecurity Home Lab
+# AEGIS Enterprise Cybersecurity Home Lab
 
 AEGIS is a hands-on enterprise cybersecurity home lab designed to simulate a small corporate environment for learning and practicing:
 
@@ -23,7 +23,7 @@ The environment is built using Oracle VirtualBox and intentionally designed so o
 
 | System | Operating System | Role | IP Address |
 |---|---|---|---|
-| OPNsense-FW | OPNsense 26.7 | Firewall / Gateway / Suricata IDS | `10.50.0.1` |
+| OPNsense-FW | OPNsense 26.7.3_11 | Firewall / Gateway / Suricata IDS | `10.50.0.1` |
 | DC01 | Windows Server 2025 | Active Directory / DNS / Group Policy | `10.50.0.10` |
 | SOC01 | Ubuntu Server 24.04 LTS | Splunk Enterprise SIEM | `10.50.0.20` |
 | WS01 | Windows 11 Enterprise | Domain Workstation / Sysmon Endpoint | `10.50.0.30` |
@@ -43,7 +43,7 @@ The environment is built using Oracle VirtualBox and intentionally designed so o
 
 - Dedicated physical Kali Linux laptop
 - Used only for controlled attack simulation against AEGIS systems
-- Controlled firewall integration is the next project phase
+- Physical Kali integration through the Windows virtualization host and OPNsense ATTACK interface is operational and validated
 
 ---
 
@@ -72,45 +72,50 @@ Active Directory domain:
 ## Current Routing Architecture
 
 ```text
-                        Internet
-                           |
-                           |
-                 VirtualBox NAT / WAN
-                           |
-                           v
-                    +---------------+
-                    |   OPNsense    |
-                    |   Firewall    |
-                    |               |
-                    | LAN 10.50.0.1 |
-                    +-------+-------+
-                            |
-                            |
-                     AEGIS-LAN
-                    10.50.0.0/24
-                            |
-          +-----------------+-----------------+
-          |                 |                 |
-          v                 v                 v
-       DC01              SOC01             WS01
-    10.50.0.10        10.50.0.20        10.50.0.30
-    AD / DNS           Splunk SIEM       Workstation
-          |
-          |
-          +-------------------------------+
-                                          |
-                                          v
-                                      WAZUH01
-                                     10.50.0.40
-                                      Wazuh XDR
+Physical Kali
+192.168.12.172
+      |
+      | Home Wi-Fi
+      v
+Windows Virtualization Host
+Wi-Fi: 192.168.12.180
+      |
+      | Persistent IPv4 forwarding
+      v
+VirtualBox Host-Only Adapter
+10.60.10.254/24
+      |
+      v
+OPNsense ATTACK
+10.60.10.1/24
+      |
+      | Scoped + logged firewall access
+      v
+OPNsense LAN
+10.50.0.1/24
+      |
+      v
+AEGIS-LAN
+10.50.0.0/24
+      |
+      +--> DC01    10.50.0.10
+      +--> SOC01   10.50.0.20
+      +--> WS01    10.50.0.30
+      +--> WAZUH01 10.50.0.40
 ```
 
-All permanent AEGIS systems now route outbound traffic through OPNsense.
+Persistent routing now includes:
 
-Temporary VirtualBox NAT adapters used during software installation were removed so internal systems cannot bypass the firewall.
+- Kali: `10.50.0.0/24` via Windows host `192.168.12.180`
+- Windows: `10.50.0.0/24` via OPNsense ATTACK `10.60.10.1`
+- OPNsense: `192.168.12.172/32` via Windows Host-Only `10.60.10.254`
+- Windows IPv4 forwarding enabled persistently on Wi-Fi and the VirtualBox Host-Only interface
+
+All permanent AEGIS systems route through OPNsense.
+
+Temporary VirtualBox NAT adapters used during installation were removed so internal systems cannot bypass the firewall.
 
 ---
-
 # Active Directory Environment
 
 DC01 runs:
@@ -291,33 +296,65 @@ A controlled authentication simulation successfully triggered the alert.
 
 ### Test Scenario
 
-Multiple failed network authentication attempts were generated from WS01 against a lab Active Directory user account.
+Controlled SMB authentication failures were generated from the dedicated physical Kali Linux laptop against DC01.
 
-The activity generated:
+Attack source:
+
+`192.168.12.172`
+
+Nonexistent test accounts `AEGIS-FAIL1` through `AEGIS-FAIL6` were used so no legitimate domain account could be locked out.
+
+DC01 recorded:
 
 - Windows Event ID `4625`
-- Network Logon Type `3`
-- Failed-password authentication telemetry
+- Logon Type `3`
+- Account Domain `CORP`
+- Workstation `KALI`
+- Source Network Address `192.168.12.172`
+- NTLM authentication failures
 
-Splunk successfully aggregated the events and generated an alert.
+Splunk ingested the Security events from DC01 and correlated six failed logons from the Kali source.
+
+The saved alert:
+
+`AEGIS - Multiple failed Login Attempts`
+
+successfully triggered.
 
 ---
-
 # Detection 2 - Encoded PowerShell Execution
 
-Sysmon Process Creation telemetry was used to detect suspicious PowerShell execution involving encoded commands.
+The validated detection uses Windows Security Process Creation auditing.
 
-Detection logic extracts fields from Sysmon XML telemetry and searches for:
+Primary Windows Event ID:
 
-- `-EncodedCommand`
-- `-enc`
+`4688`
+
+Validated Splunk search:
+
+```spl
+index=* host=WS01 source="WinEventLog:Security" EventCode=4688
+| where match(lower(_raw), "(-encodedcommand|-enc)")
+| table _time host EventCode Account_Name _raw
+```
 
 A harmless Base64-encoded PowerShell command was executed on WS01.
 
-The detection successfully generated an alert in Splunk.
+Test marker:
+
+`AEGIS_ENCODED_TEST_2`
+
+Splunk ingested the Event ID `4688` process-creation event containing the `-EncodedCommand` argument.
+
+The saved alert:
+
+`AEGIS - Encoded PowerShell Execution`
+
+was corrected from the original Sysmon-only query to Windows Security Event ID `4688` and successfully generated a fresh trigger after the update.
+
+Sysmon remains installed on WS01 for additional endpoint telemetry.
 
 ---
-
 # Wazuh SIEM / XDR
 
 WAZUH01 runs Wazuh 4.14.7 using an all-in-one deployment.
@@ -360,7 +397,7 @@ Description:
 
 `Logon Failure - Unknown user or bad password`
 
-The event was generated using a controlled failed login attempt on WS01.
+The event was generated by controlled failed SMB authentication attempts from the physical Kali laptop (192.168.12.172) against DC01. Wazuh displayed matching events for agent dc01-aegis using rule ID 60122.
 
 ---
 
@@ -396,23 +433,60 @@ The test account was removed after validation.
 
 # OPNsense Firewall
 
-OPNsense 26.7 is deployed as the main AEGIS firewall and gateway.
+OPNsense 26.7.3_11 is deployed as the main AEGIS firewall, gateway, and network-security control point.
 
 Configuration:
 
 ```text
-WAN → VirtualBox NAT
-LAN → AEGIS-LAN
-LAN IP → 10.50.0.1/24
+WAN          â†’ VirtualBox NAT
+LAN          â†’ AEGIS-LAN
+LAN IP       â†’ 10.50.0.1/24
+ATTACK       â†’ VirtualBox Host-Only
+ATTACK IP    â†’ 10.60.10.1/24
+Windows Host â†’ 10.60.10.254/24
 ```
 
-Validated routing:
+Physical Kali uses:
+
+`192.168.12.172`
+
+The ATTACK interface restricts offensive traffic with aliases and a logged firewall rule:
 
 ```text
-DC01     → OPNsense → Internet
-WS01     → OPNsense → Internet
-SOC01    → OPNsense → Internet
-WAZUH01  → OPNsense → Internet
+Source      â†’ KALI_ATTACKER
+Destination â†’ AEGIS_TARGETS
+Action      â†’ Pass
+Logging     â†’ Enabled
+```
+
+A persistent OPNsense gateway and static route send return traffic for `192.168.12.172/32` through the Windows Host-Only router at `10.60.10.254`.
+
+Validated attack path:
+
+```text
+Physical Kali
+192.168.12.172
+      |
+      v
+Windows Host
+192.168.12.180 / 10.60.10.254
+      |
+      v
+OPNsense ATTACK
+10.60.10.1
+      |
+      v
+AEGIS-LAN
+10.50.0.0/24
+```
+
+A controlled Nmap SYN reconnaissance scan from physical Kali successfully reached DC01.
+
+OPNsense Live View confirmed the traffic entering on ATTACK and leaving on LAN:
+
+```text
+ATTACK In â†’ 192.168.12.172 â†’ 10.50.0.10
+LAN Out   â†’ 192.168.12.172 â†’ 10.50.0.10
 ```
 
 Internal systems continue using DC01 for DNS:
@@ -424,7 +498,6 @@ DC01 forwards Internet DNS queries upstream while maintaining DNS resolution for
 `corp.aegis.test`
 
 ---
-
 # Suricata Network IDS
 
 Suricata is enabled within OPNsense.
@@ -685,7 +758,7 @@ This approach prevents unnecessary resource exhaustion while keeping the environ
 - Wazuh failed-login detection
 - Active Directory account creation detection
 - Active Directory account deletion detection
-- OPNsense 26.7 installation
+- OPNsense 26.7.3_11 installation
 - OPNsense LAN/WAN configuration
 - OPNsense Internet routing
 - Removal of temporary VM NAT bypass adapters
@@ -695,46 +768,40 @@ This approach prevents unnecessary resource exhaustion while keeping the environ
 - Suricata IDS deployment
 - Emerging Threats Open rules
 - Suricata test alert validation
+- Physical Kali Red Team integration
+- Persistent Kali-to-AEGIS routing
+- Persistent Windows IPv4 forwarding
+- Persistent OPNsense return route to physical Kali
+- Scoped and logged ATTACK-interface firewall policy
+- Physical Kali Nmap reconnaissance against DC01
+- OPNsense firewall logging of Kali reconnaissance
+- Physical Kali SMB failed-login simulation
+- DC01 Event ID 4625 validation from Kali
+- Splunk failed-login scheduled alert triggered
+- Wazuh Rule 60122 failed-login validation
+- Windows Security Event ID 4688 encoded-PowerShell validation
+- Corrected encoded-PowerShell Splunk alert triggered
 
 ---
 
-# Next Phase - Controlled Red Team Integration
+# Controlled Red Team Integration
 
-The next phase will introduce the physical Kali Linux laptop through a controlled firewall path.
+Physical Kali Red Team integration is now operational.
 
-Planned architecture:
+Validated capabilities include:
 
-```text
-Physical Kali Laptop
-        |
-        | Controlled Attack Network
-        v
-     OPNsense
-        |
-        | Firewall Rules
-        v
-    AEGIS-LAN
-        |
-   +----+----+
-   |         |
-   v         v
- DC01       WS01
-```
+- Persistent routed access from physical Kali into the isolated AEGIS network
+- Scoped OPNsense ATTACK-interface firewall policy
+- Logged Nmap reconnaissance against DC01
+- Controlled SMB authentication failures
+- Windows Event ID `4625` generation on DC01
+- Splunk ingestion and scheduled threshold alerting
+- Wazuh detection using rule `60122`
+- Encoded PowerShell execution on WS01
+- Windows Security Event ID `4688` ingestion
+- Splunk encoded-command alerting
 
-Planned testing includes:
-
-- Host discovery
-- Network reconnaissance
-- Port scanning
-- Authentication testing
-- Windows security-event generation
-- Network IDS detection
-- Endpoint detection
-- SIEM investigation
-- Detection correlation
-- Incident response documentation
-
-The goal is not simply to execute attacks, but to understand the complete defensive workflow:
+The validated defensive workflow is:
 
 ```text
 Attack
@@ -763,6 +830,16 @@ Retest
 
 ---
 
+# Remaining Finalization Work
+
+- Remove or disable abandoned WireGuard configuration from the earlier integration attempt
+- Capture and organize final evidence screenshots
+- Update detailed progress and incident-response documentation
+- Take final clean-state VirtualBox snapshots
+- Perform one final end-to-end validation
+- Complete final repository cleanup and documentation polish
+
+---
 # Project Goals
 
 AEGIS is designed to build practical skills in:

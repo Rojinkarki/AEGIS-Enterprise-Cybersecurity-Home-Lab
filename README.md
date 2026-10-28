@@ -65,13 +65,63 @@ These versions describe the recorded build baseline. On the 32 GB host, Splunk a
 
 The [validation record](Documentation/validation.md) separates historical build results from what the screenshots directly demonstrate. The portfolio refresh did not rerun VMs or security exercises.
 
+## Screenshots
+
+All nine retained screenshots are displayed below. The [evidence index](Screenshots/README.md) includes provenance and checksum details.
+
 ### Kali reconnaissance
+
+The original upload shows the scan command, DC01 target, six open ports, and final summary.
 
 ![Original Kali Nmap upload: command, DC01, six open ports, and summary](Screenshots/02-kali-nmap-dc01.png)
 
-### Firewall logging
+### OPNsense ATTACK traffic
+
+Kali-source traffic is logged passing through ATTACK ingress and LAN egress toward DC01.
 
 ![OPNsense pass entries from Kali on ATTACK and LAN](Screenshots/03-opnsense-attack-traffic.png)
+
+### OPNsense firewall blocks
+
+Default-deny and state-violation rows demonstrate block logging; this capture is not a complete ATTACK policy test.
+
+![OPNsense firewall Live View showing default-deny and state-violation rows](Screenshots/04-opnsense-firewall-blocks.png)
+
+### OPNsense WAN traffic
+
+WAN log entries provide a view of firewall egress activity.
+
+![OPNsense Live View showing WAN traffic](Screenshots/05-opnsense-wan-traffic.png)
+
+### Splunk detection overview
+
+Both the failed-logon and encoded-PowerShell saved detections are enabled.
+
+![Splunk Alerts overview showing both AEGIS detections enabled](Screenshots/06-splunk-alerts-overview.png)
+
+### Wazuh DC01 telemetry
+
+Threat Hunting shows 1,573 hits for `dc01-aegis`, including logon and logoff events.
+
+![Wazuh Threat Hunting showing DC01 agent telemetry](Screenshots/07-wazuh-dc01-telemetry.png)
+
+### DC01 Windows Security events
+
+The populated Windows Security log shows auditing activity with Event 4634 selected; the historical 4625 and 4688 tests are not pictured here.
+
+![DC01 Event Viewer showing the Windows Security log and selected Event 4634](Screenshots/08-dc01-windows-security-events.png)
+
+### Wazuh vulnerability events
+
+DC01 vulnerability-related events demonstrate additional endpoint visibility; they do not establish exploitability or remediation.
+
+![Wazuh event list showing DC01 vulnerability-related events](Screenshots/09-wazuh-vulnerability-events.png)
+
+### Splunk failed-logon alert configuration
+
+The scheduled alert is configured for five or more failures on one host within 15 minutes. This configuration capture shows no fired events at capture time.
+
+![Splunk failed-logon alert configuration showing threshold and scheduled status](Screenshots/10-splunk-failed-login-alert-config.png)
 
 ## Reusable artifacts
 

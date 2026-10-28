@@ -1,0 +1,3 @@
+index=* source="WinEventLog:Security" EventCode=4625
+| stats count as Failed_Logins by host
+| where Failed_Logins >= 5

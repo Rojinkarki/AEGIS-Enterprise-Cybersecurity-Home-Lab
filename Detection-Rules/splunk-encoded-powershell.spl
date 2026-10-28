@@ -1,0 +1,3 @@
+index=* host=WS01 source="WinEventLog:Security" EventCode=4688
+| where match(lower(_raw), "(-encodedcommand|-enc)")
+| table _time host EventCode Account_Name _raw

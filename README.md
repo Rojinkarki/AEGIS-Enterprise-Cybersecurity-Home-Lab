@@ -13,6 +13,7 @@ The main networking challenge was making the physical Kali path persistent acros
 - [Validation results and evidence limits](Documentation/validation.md)
 - [IR-001: failed Active Directory logons](Incident-Reports/IR-001-Multiple-Failed-Logins.md)
 - [Screenshot gallery](Screenshots/README.md)
+- [LinkedIn-ready project description](Documentation/portfolio-description.md)
 
 ## Architecture
 

@@ -10,6 +10,7 @@ AEGIS v1.0 remains complete. This patch improves the public project record witho
 - Consolidated duplicate evidence, corrected names/links, and added captions and SHA-256 checksums.
 - Distinguished historical validation from configuration-only screenshots and the unsuccessful latest Suricata recapture.
 - Added sanitized configuration references, detection guidance, scoped checks and repository hygiene verification.
+- Prepared a [LinkedIn project description](portfolio-description.md) and recorded static verification outcomes.
 
 The original `v1.0.0` tag remains at its original commit. `v1.0.1` identifies this finalized portfolio refresh on main; no existing tag is moved.
 

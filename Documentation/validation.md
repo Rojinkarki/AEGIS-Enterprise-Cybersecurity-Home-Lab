@@ -37,3 +37,13 @@ Preserve timestamps and display time zones in new evidence. Retained Kali, Windo
 ## Evidence handling
 
 The [gallery](../Screenshots/README.md) captions every image. [SHA256SUMS.txt](../Screenshots/SHA256SUMS.txt) identifies published bytes; hashes check integrity, not independent proof of lab behavior. Images were visually reviewed for credentials. Raw logs, VM disks, appliance exports, passwords, and private keys are excluded.
+
+## Repository verification — 2026-10-28
+
+- Local Markdown links and all nine screenshot checksums passed; no duplicate image bytes remain.
+- Common secret-pattern checks passed on the release files and reachable historical text blobs. Excluded file-type checks passed; images also received visual review. These checks are not exhaustive secret detection.
+- Python, Bash and PowerShell syntax checks passed.
+- Nine controlled command-stub checks passed for the Kali helper: default and explicit allowed targets, blocked ICMP, external and CIDR target rejection, option injection rejection, extra-argument rejection, wrong-gateway rejection, and scan-failure propagation.
+- Stub checks did not contact the network, request actual elevated scanning, change routing, or run a security exercise against the live range.
+
+The [portfolio description](portfolio-description.md) is ready to reuse on LinkedIn.

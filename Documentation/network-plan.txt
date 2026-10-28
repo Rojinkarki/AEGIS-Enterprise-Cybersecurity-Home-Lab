@@ -1,8 +1,12 @@
-AEGIS ENTERPRISE CYBER RANGE
-============================
+AEGIS ENTERPRISE CYBER RANGE - FINAL NETWORK PLAN
+================================================
 
-LAB NETWORK
------------
+STATUS
+------
+AEGIS v1.0 COMPLETE
+
+ENTERPRISE NETWORK
+------------------
 Network Name : AEGIS-LAN
 Subnet       : 10.50.0.0/24
 Gateway      : 10.50.0.1
@@ -11,265 +15,59 @@ Domain       : corp.aegis.test
 
 RESERVED IP ADDRESSES
 ---------------------
-10.50.0.1  - OPNsense-FW - Firewall / Gateway / Suricata IDS
-10.50.0.10 - DC01        - Windows Server / Active Directory / DNS
-10.50.0.20 - SOC01       - Ubuntu Server / Splunk Enterprise
-10.50.0.30 - WS01        - Windows 11 Enterprise Workstation
-10.50.0.40 - WAZUH01     - Ubuntu Server / Wazuh SIEM-XDR
+10.50.0.1  - OPNsense-FW
+10.50.0.10 - DC01
+10.50.0.20 - SOC01
+10.50.0.30 - WS01
+10.50.0.40 - WAZUH01
 
 PHYSICAL SYSTEMS
 ----------------
-Windows 11 Home Laptop
-Role : VirtualBox Host
-
-Kali Linux Laptop
-Role : Red Team / Controlled Attack Simulation
-Status : Controlled integration pending
+Windows Host Wi-Fi      : 192.168.12.180/24
+Windows Host-Only       : 10.60.10.254/24
+Physical Kali           : 192.168.12.172/24
 
 OPNSENSE
 --------
-Version : 26.7
+Version : 26.7.3_11
+WAN     : le0 / VirtualBox NAT
+LAN     : le1 / 10.50.0.1/24
+ATTACK  : em0 / 10.60.10.1/24
 
-WAN
-Interface  : le0
-Connection : VirtualBox NAT
-Address    : DHCP
-Example IP : 10.0.2.15/24
+PERSISTENT ROUTING
+------------------
+Kali:
+10.50.0.0/24 via 192.168.12.180
 
-LAN
-Interface  : le1
-Connection : Internal Network
-Network    : AEGIS-LAN
-Address    : 10.50.0.1/24
+Windows:
+10.50.0.0/24 via 10.60.10.1
 
-OPNsense is the default gateway for all permanent AEGIS systems.
+OPNsense:
+192.168.12.172/32 via 10.60.10.254
 
-ROUTING
--------
-DC01
-IP      : 10.50.0.10
-Gateway : 10.50.0.1
-DNS     : 10.50.0.10
+FIREWALL POLICY
+---------------
+KALI_ATTACKER : 192.168.12.172
+AEGIS_TARGETS : 10.50.0.10, 10.50.0.20, 10.50.0.30, 10.50.0.40
 
-SOC01
-IP      : 10.50.0.20
-Gateway : 10.50.0.1
-DNS     : 10.50.0.10
+Action  : Pass
+Logging : Enabled
 
-WS01
-IP      : 10.50.0.30
-Gateway : 10.50.0.1
-DNS     : 10.50.0.10
-
-WAZUH01
-IP      : 10.50.0.40
-Gateway : 10.50.0.1
-DNS     : 10.50.0.10
-
-Temporary VirtualBox NAT adapters used during installation were removed from permanent AEGIS systems after OPNsense routing was validated.
-
-DNS ARCHITECTURE
-----------------
-Internal systems use DC01 for DNS:
-
-10.50.0.10
-
-DC01 resolves:
-
-- Active Directory domain records
-- corp.aegis.test
-- Internal AEGIS hosts
-- Internet domains through upstream DNS forwarders
-
-Configured DNS forwarders:
-
-1.1.1.1
-8.8.8.8
-
-Traffic path:
-
-Internal System
-      |
-      v
-DC01 DNS
-10.50.0.10
-      |
-      v
-OPNsense
-10.50.0.1
-      |
-      v
-Internet
-
-SPLUNK
-------
-SOC01 runs Splunk Enterprise.
-
-Splunk Universal Forwarders are installed on:
-
-- DC01
-- WS01
-
-Splunk receives:
-
-- Windows Security logs
-- Windows System logs
-- Windows Application logs
-- Active Directory events
-- Sysmon events
-
-Validated detections:
-
-- Multiple Failed Login Attempts
-- Encoded PowerShell Execution
-
-WAZUH
------
-WAZUH01 runs Wazuh 4.14.7.
-
-Connected agents:
-
-- dc01-aegis
-- ws01-aegis
-
-Validated Windows detections include:
-
-4625 - Failed Login
-4720 - User Account Creation
-4726 - User Account Deletion
-
-SURICATA IDS
-------------
-Suricata runs inside OPNsense.
-
-Interface      : LAN
-Capture Mode   : PCAP Live Mode
-Operating Mode : IDS / Alert Only
-Rules          : Emerging Threats Open
-
-Validated detection:
-
-SID 2100498
-GPL ATTACK_RESPONSE id check returned root
-
-CURRENT SECURITY PATHS
+VALIDATED CAPABILITIES
 ----------------------
-
-Endpoint / Splunk:
-
-DC01 / WS01
-     |
-     v
-Windows Event Logs / Sysmon
-     |
-     v
-Splunk Universal Forwarder
-     |
-     v
-SOC01
-     |
-     v
-Splunk Detection Rules
-     |
-     v
-Alerts
-
-Endpoint / Wazuh:
-
-DC01 / WS01
-     |
-     v
-Wazuh Agent
-     |
-     v
-WAZUH01
-     |
-     v
-Wazuh Rules
-     |
-     v
-Alerts
-
-Network:
-
-AEGIS-LAN
-    |
-    v
-OPNsense
-    |
-    v
-Suricata IDS
-    |
-    v
-ET Open Rules
-    |
-    v
-Network Alerts
-
-CURRENT INTERNET PATH
----------------------
-AEGIS Systems
-     |
-     v
-OPNsense LAN
-10.50.0.1
-     |
-     v
-OPNsense WAN
-     |
-     v
-VirtualBox NAT
-     |
-     v
-Internet
-
-PHYSICAL ATTACKER
------------------
-Device : Dedicated Kali Linux Laptop
-Role   : Red Team / Attack Simulation
-
-Current Status:
-Not directly connected to AEGIS-LAN.
-
-Planned architecture:
-
-Physical Kali Laptop
-        |
-        v
-Dedicated OPNsense Attack Interface
-        |
-        v
-Restrictive Firewall Rules
-        |
-        v
-AEGIS-LAN
-        |
-   +----+----+
-   |         |
-   v         v
- DC01       WS01
+- Kali -> DC01 reachability
+- Nmap reconnaissance
+- OPNsense ATTACK ingress logging
+- OPNsense LAN egress logging
+- controlled SMB authentication failures
+- Windows Event ID 4625
+- Splunk failed-login detection
+- Wazuh DC01 telemetry
+- Windows Event ID 4688
+- Splunk encoded-PowerShell detection
+- Suricata IDS rule processing
+- routing persistence after restart
 
 SAFETY
 ------
-AEGIS-LAN is an isolated internal lab network.
-
-Offensive-security testing is limited to systems owned and intentionally configured for AEGIS.
-
-The physical Kali system will be introduced only through a controlled firewall path.
-
-The lab is not used to attack unauthorized external systems.
-
-NEXT PHASE
-----------
-- Add attacker-facing OPNsense interface
-- Integrate physical Kali Linux laptop
-- Restrict Kali access with firewall rules
-- Perform controlled network reconnaissance
-- Generate Suricata alerts
-- Generate Windows endpoint telemetry
-- Observe Splunk detections
-- Observe Wazuh detections
-- Correlate network and endpoint evidence
-- Create additional incident reports
-- Apply hardening
-- Retest detections
+Testing is restricted to systems owned and intentionally configured for AEGIS.

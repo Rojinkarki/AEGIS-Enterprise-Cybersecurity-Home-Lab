@@ -1,73 +1,81 @@
 AEGIS ENTERPRISE CYBER RANGE - FINAL NETWORK PLAN
 ================================================
+Status: AEGIS v1.0 COMPLETE
+Portfolio evidence refresh: 2026-10-28
 
-STATUS
-------
-AEGIS v1.0 COMPLETE
+ZONES
+-----
+Physical access  192.168.12.0/24  Kali and Windows Wi-Fi
+ATTACK transit   10.60.10.0/24    VirtualBox host-only
+AEGIS-LAN        10.50.0.0/24     VirtualBox internal
+WAN              VirtualBox NAT  OPNsense egress
 
-ENTERPRISE NETWORK
-------------------
-Network Name : AEGIS-LAN
-Subnet       : 10.50.0.0/24
-Gateway      : 10.50.0.1
-Internal DNS : 10.50.0.10
-Domain       : corp.aegis.test
-
-RESERVED IP ADDRESSES
+ENTERPRISE ADDRESSING
 ---------------------
-10.50.0.1  - OPNsense-FW
-10.50.0.10 - DC01
-10.50.0.20 - SOC01
-10.50.0.30 - WS01
-10.50.0.40 - WAZUH01
+Domain         corp.aegis.test
+Gateway        10.50.0.1
+DNS            10.50.0.10
+OPNsense-FW    10.50.0.1/24
+DC01           10.50.0.10/24  Active Directory / DNS / GPO
+SOC01          10.50.0.20/24  Splunk
+WS01           10.50.0.30/24  Windows / Sysmon
+WAZUH01        10.50.0.40/24  Wazuh
 
-PHYSICAL SYSTEMS
-----------------
-Windows Host Wi-Fi      : 192.168.12.180/24
-Windows Host-Only       : 10.60.10.254/24
-Physical Kali           : 192.168.12.172/24
+PHYSICAL / TRANSIT ADDRESSING
+----------------------------
+Kali                 192.168.12.172/24
+Windows Wi-Fi        192.168.12.180/24
+Windows host-only    10.60.10.254/24
+OPNsense ATTACK      10.60.10.1/24
 
 OPNSENSE
 --------
-Version : 26.7.3_11
-WAN     : le0 / VirtualBox NAT
-LAN     : le1 / 10.50.0.1/24
-ATTACK  : em0 / 10.60.10.1/24
+Baseline  26.7.3_11
+WAN       le0  VirtualBox NAT
+LAN       le1  AEGIS-LAN / 10.50.0.1/24
+ATTACK    em0  Host-only / 10.60.10.1/24
 
 PERSISTENT ROUTING
 ------------------
-Kali:
-10.50.0.0/24 via 192.168.12.180
+Kali      10.50.0.0/24       via 192.168.12.180
+Windows   10.50.0.0/24       via 10.60.10.1
+OPNsense  192.168.12.172/32  via 10.60.10.254 (KALI_RETURN_GW)
+Windows IPv4 forwarding joins Wi-Fi and host-only interfaces.
+No source NAT on the internal Kali-to-DC01 path; Kali source is retained.
+Reboot persistence was reported in the completed build baseline.
+Configuration / read-only checks: Configs/network-routing.md
 
-Windows:
-10.50.0.0/24 via 10.60.10.1
+ATTACK FIREWALL POLICY
+---------------------
+KALI_ATTACKER = 192.168.12.172/32
+AEGIS_TARGETS = 10.50.0.10, 10.50.0.20, 10.50.0.30, 10.50.0.40
+Interface     = ATTACK
+Source        = KALI_ATTACKER
+Destination   = AEGIS_TARGETS
+Action        = Pass
+Logging       = Enabled
+Other inbound traffic is subject to remaining rules / default deny.
+Full protocol/port export not retained; no least-port claim is made.
+Reference: Configs/opnsense-attack-policy.md
 
-OPNsense:
-192.168.12.172/32 via 10.60.10.254
+VALIDATION RECORD
+-----------------
+Screenshot: DC01 Nmap scan, ports 53/88/135/139/389/445 open.
+Screenshot: Kali ATTACK ingress and LAN egress pass entries.
+Screenshot: general default-deny rows (not a full policy matrix test).
+Screenshot: two enabled Splunk detections; failed-logon configuration.
+Screenshot: DC01 Security log, Wazuh telemetry and vulnerability events.
+Historical: failed SMB logons, 4625, Splunk trigger, Wazuh rule 60122.
+Historical: harmless encoded PowerShell, 4688, Splunk matching.
+Historical: Suricata ET Open SID 2100498 alert.
+Latest Suricata recapture: no matching alert; screenshot unavailable.
+Historical: five final snapshots and routing persistence after restart.
+Evidence qualifications: Documentation/validation.md
 
-FIREWALL POLICY
----------------
-KALI_ATTACKER : 192.168.12.172
-AEGIS_TARGETS : 10.50.0.10, 10.50.0.20, 10.50.0.30, 10.50.0.40
-
-Action  : Pass
-Logging : Enabled
-
-VALIDATED CAPABILITIES
-----------------------
-- Kali -> DC01 reachability
-- Nmap reconnaissance
-- OPNsense ATTACK ingress logging
-- OPNsense LAN egress logging
-- controlled SMB authentication failures
-- Windows Event ID 4625
-- Splunk failed-login detection
-- Wazuh DC01 telemetry
-- Windows Event ID 4688
-- Splunk encoded-PowerShell detection
-- Suricata IDS rule processing
-- routing persistence after restart
-
-SAFETY
-------
-Testing is restricted to systems owned and intentionally configured for AEGIS.
+BOUNDARIES
+----------
+Testing is restricted to owner-controlled AEGIS systems.
+Enterprise VMs share one subnet; same-subnet traffic may bypass IDS.
+Range has Internet egress via OPNsense; it is not air-gapped.
+Earlier WireGuard integration is disabled and outside final v1.
+Passwords, keys, VM images and appliance backups remain outside Git.

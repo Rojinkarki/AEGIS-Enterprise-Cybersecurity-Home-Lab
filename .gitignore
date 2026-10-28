@@ -51,3 +51,25 @@ __pycache__/
 venv/
 
 *.iso.bz2
+
+# Additional credentials and raw evidence exports
+.env.*
+!.env.example
+id_rsa
+id_ed25519
+id_ecdsa
+client.keys
+*.ppk
+*.kdbx
+*.jks
+*.keystore
+*.har
+*.evtx
+config.xml
+config-*.xml
+*.conf.bak
+auth/
+private/
+
+# Local validation scratch files
+.validation-tmp/

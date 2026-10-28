@@ -1,108 +1,174 @@
-﻿# AEGIS Incident Report IR-001
+# AEGIS Incident Report IR-001
 
 ## Incident Title
-Multiple Failed Active Directory Login Attempts
+
+Multiple Failed Active Directory Login Attempts from Physical Kali
 
 ## Severity
-High
 
-## Detection Source
-Splunk Enterprise
+Medium
+
+## Detection Sources
+
+- Splunk Enterprise
+- Wazuh
+- Windows Security Log
+- OPNsense firewall logging
 
 ## Detection Rule
-AEGIS - Multiple Failed Login Attempts
 
-## Date
-August 27, 2026
+`AEGIS - Multiple failed Login Attempts`
 
-## Affected Systems
-- DC01 - 10.50.0.10
-- WS01 - 10.50.0.30
+## Validation Date
 
-## Target Account
-CORP\acarter
+October 9, 2026
+
+## Affected System
+
+- DC01 - `10.50.0.10`
+
+## Source System
+
+- Physical Kali Linux laptop - `192.168.12.172`
+
+## Test Accounts
+
+- `CORP\AEGIS-FAIL1`
+- `CORP\AEGIS-FAIL2`
+- `CORP\AEGIS-FAIL3`
+- `CORP\AEGIS-FAIL4`
+- `CORP\AEGIS-FAIL5`
+- `CORP\AEGIS-FAIL6`
+
+These usernames were intentionally nonexistent so no legitimate domain account could be locked out.
 
 ## Detection Logic
-The Splunk alert detects 5 or more Windows failed logon events
-(Event ID 4625) on the same host within a 15-minute period.
+
+The Splunk alert detects five or more Windows failed logon events (`Event ID 4625`) within the configured detection window.
+
+Validated SPL:
+
+```spl
+index=* source="WinEventLog:Security" EventCode=4625
+| stats count as Failed_Logins by host
+| where Failed_Logins >= 5
+```
 
 ## Relevant Windows Event
-Event ID: 4625
 
-Description:
-An account failed to log on.
+Event ID:
+
+`4625`
+
+Observed fields:
+
+- Logon Type: `3`
+- Account Domain: `CORP`
+- Workstation Name: `KALI`
+- Source Network Address: `192.168.12.172`
+- Authentication Package: `NTLM`
+- Failure Reason: unknown username or bad password
 
 ## Observed Activity
-Multiple failed authentication attempts were generated from WS01
-against the CORP\acarter account while attempting to access a
-network resource on DC01.
 
-The failed attempts generated Windows Security Event ID 4625
-events on the domain controller.
+Physical Kali generated controlled SMB authentication failures against DC01.
 
-## Authentication Type
-Logon Type 3 - Network Logon
+Traffic path:
 
-## Detection Flow
+```text
+Physical Kali
+192.168.12.172
+      |
+      v
+Windows Host
+192.168.12.180 / 10.60.10.254
+      |
+      v
+OPNsense ATTACK
+10.60.10.1
+      |
+      v
+DC01
+10.50.0.10
+```
 
-WS01
-  v
-Failed authentication attempts
-  v
-DC01 Windows Security Log
-  v
-Event ID 4625
-  v
-Splunk Universal Forwarder
-  v
-SOC01 Splunk Enterprise
-  v
-AEGIS Detection Rule
-  v
-Alert Triggered
+OPNsense Live View confirmed the Kali source entering on the ATTACK interface and being forwarded toward AEGIS-LAN.
+
+DC01 generated Windows Security Event ID `4625`.
+
+## Splunk Validation
+
+Splunk ingested the DC01 Security events.
+
+A validation search identified six matching failed logons from source IP:
+
+`192.168.12.172`
+
+The scheduled alert:
+
+`AEGIS - Multiple failed Login Attempts`
+
+successfully triggered.
+
+## Wazuh Validation
+
+Wazuh displayed matching failed-logon events for agent:
+
+`dc01-aegis`
+
+Rule ID:
+
+`60122`
+
+Description:
+
+`Logon Failure - Unknown user or bad password`
 
 ## Investigation
 
-The alert was investigated in Splunk using Windows Security
-Event ID 4625.
+The activity was correlated across:
 
-Important fields reviewed included:
+- OPNsense firewall logs
+- DC01 Windows Security events
+- Splunk
+- Wazuh
 
-- Account Name
-- Account Domain
-- Logon Type
-- Workstation Name
-- Source Network Address
-- Failure Reason
-- Status
-- Sub Status
-
-The activity was identified as a controlled AEGIS lab simulation.
+The source IP, timing, target, and test usernames matched the authorized AEGIS simulation.
 
 ## Classification
-True Positive - Authorized Security Test
+
+`True Positive - Authorized Security Test`
 
 ## Impact
+
 No production impact.
 
-No account compromise occurred.
+No legitimate account was locked or compromised.
 
-The activity was intentionally generated as part of the
-AEGIS detection engineering lab.
+No unauthorized system was targeted.
 
 ## Response
-The authentication attempts were reviewed and correlated
-with the originating workstation.
 
-No containment action was required because the activity
-was authorized.
+No containment was required because the activity was intentionally generated inside the isolated AEGIS cyber range.
+
+The event was retained as evidence that these controls were operating correctly:
+
+- network routing
+- firewall logging
+- Windows authentication auditing
+- Splunk ingestion
+- Splunk threshold detection
+- Wazuh endpoint detection
 
 ## Lessons Learned
-- Windows Event ID 4625 provides detailed failed authentication telemetry.
-- Splunk can aggregate repeated authentication failures into actionable detections.
-- A single failed password attempt should not necessarily generate an incident.
-- Threshold-based detection helps distinguish normal user mistakes from suspicious activity.
-- Investigation context is required before determining whether an alert represents malicious behavior.
+
+- Windows Event ID `4625` provides useful authentication-failure telemetry.
+- Source IP and workstation fields are critical for attribution.
+- Threshold-based detections reduce noise from isolated mistakes.
+- SIEM detections should be tested using controlled, repeatable simulations.
+- Correlating network, endpoint, and SIEM evidence provides stronger confidence than relying on a single source.
+- Nonexistent test usernames prevent accidental account lockouts during authentication testing.
 
 ## Status
-Closed - Authorized Simulation
+
+`Closed - Authorized Simulation`
